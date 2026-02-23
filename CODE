@@ -247,7 +247,7 @@ f_stage2(useFull, requireShortTrend) =>
     sma150_s = ta.sma(close, 150)
     sma200_s = ta.sma(close, 200)
     
-    bool full = not useFull or (sma50_s > sma150_s and sma150_s > sma200_s and sma200_s > sma200_s[20])
+    bool full = not useFull or (not na(sma200_s) and sma50_s > sma150_s and sma150_s > sma200_s and sma200_s > nz(sma200_s[20], sma200_s))
     
     ema9_s  = ta.ema(close, 9)
     ema21_s = ta.ema(close, 21)
@@ -409,7 +409,9 @@ calc_bull_logic() =>
         
         bool leg1OK = true
         if useLeg1
-            float leg1M = (close[consDaysMaxBull] - close[consDaysMaxBull + leg1Lookback]) / close[consDaysMaxBull + leg1Lookback]
+            int leg1Offset = consDaysMaxBull + leg1Lookback
+            float leg1Base = nz(close[leg1Offset])
+            float leg1M = leg1Base > 0 ? (nz(close[consDaysMaxBull]) - leg1Base) / leg1Base : 0.0
             leg1OK := leg1M >= leg1Pct
 
         int redC = 0
