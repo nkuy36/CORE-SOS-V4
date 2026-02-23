@@ -490,7 +490,7 @@ calc_bull_logic() =>
         // --- LAYER 2: PULLBACK QUALITY ---
         float recentHigh = ta.highest(high, h2SwingLB)
         int   barsSinceHigh = ta.barssince(high == recentHigh)
-        int   bsh_safe = math.max(1, barsSinceHigh)
+        int   bsh_safe = math.max(1, nz(barsSinceHigh, 1))
 
         bool pullbackOK = true
         if h2RequirePullback
@@ -1035,7 +1035,8 @@ f_populateStatsDashboard() =>
             int vRow = statsTableOrientation == "Vertical" ? r : 1
             table.cell(statsTable, vCol, vRow, array.get(values, i), text_color=txtCol, bgcolor=cellBg, text_halign=text.align_center, text_size=statsTableSize)
 
-if showStatsTable
+// OPTIONAL PERFORMANCE: Only draw the table on the current real-time bar
+if showStatsTable and barstate.islast
     f_populateStatsDashboard()
 
 plot(finalBullSOS ? 1 : 0, title="Signal Output", display=display.none)
