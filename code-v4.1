@@ -356,16 +356,13 @@ calc_bull_logic() =>
     else
         tCtx := "BEAR / REPAIR"
 
-    // VCP Trend Template
+    // VCP Trend Template (Dashboard Readiness)
     sma50_loc = ta.sma(close, 50)
-    sma150_loc = ta.sma(close, 150)
-    sma200_loc = ta.sma(close, 200)
     high52_loc = ta.highest(high, 252)
     low52_loc = ta.lowest(low, 252)
 
-    bool trendTemp = true
-    if useTrendTemplate
-        trendTemp := close > sma150_loc and close > sma200_loc and sma150_loc > sma200_loc and sma200_loc > sma200_loc[20] and close > sma50_loc and close >= low52_loc * 1.25 and close >= high52_loc * 0.75
+    [s2ok_dash, _s2d] = f_stage2(useTrendTemplate, false)
+    bool trendTemp = s2ok_dash and (not useTrendTemplate or (close > sma50_loc and close >= low52_loc * 1.25 and close >= high52_loc * 0.75))
 
     // VCP Conditions
     bool volContract = ta.atr(5) < ta.atr(20)
@@ -534,7 +531,14 @@ calc_bull_logic() =>
             "Close > Prior High" => close > high[1]
             "Close > Pause High" => close > ctPauseHighVal
 
-        float ctTrigVolRef = ctTightPauseOK ? ta.sma(volume, ctPauseMaxB) : ctMAPullbackOK ? ta.sma(volume, math.max(1, nz(ta.barssince(high == ta.highest(high, ctLeg1LB)), 1))) : ta.sma(volume, 5)
+        // FIX: Extract historical functions from conditional operators to prevent buffer crashes
+        int pbLenSafe = math.max(1, nz(ta.barssince(high == ta.highest(high, ctLeg1LB)), 1))
+        float smaPause = ta.sma(volume, ctPauseMaxB)
+        float smaPB = ta.sma(volume, pbLenSafe)
+        float smaDef = ta.sma(volume, 5)
+        
+        float ctTrigVolRef = ctTightPauseOK ? smaPause : ctMAPullbackOK ? smaPB : smaDef
+        
         bool ctVolExpand = not ctRequireVolExpansion or (volume >= nz(ctTrigVolRef) * ctTriggerVolMultiple)
 
         bool ctTriggerOK = ctIsGreen and ctClosePos and ctBodyOK and ctTriggerBar and ctVolExpand
@@ -762,9 +766,6 @@ calc_bull_logic() =>
     // 2. Calculate ATR Distance (KID Logic: % Dist / ATR %)
     // This is mathematically the same as (Price - MA) / ATR
     float ext_atr = (close - maVal) / atr14_loc
-
-    // Return Result (Pass these values out)
-    BullResult.new(final, standardSOS, ctBull, vBull, h2Bull, cdlBull, tCtx, vcpReady_loc, avgBars, rText, orhBreak, ext_atr, ext_pct)
 
     // Return Result
     BullResult.new(final, standardSOS, ctBull, vBull, h2Bull, cdlBull, tCtx, vcpReady_loc, avgBars, rText, orhBreak, ext_atr, ext_pct)
@@ -1027,9 +1028,7 @@ if barstate.isfirst and showStatsTable
 f_populateStatsDashboard() =>
     if na(statsTable) or not showStatsTable
         na
-    else
-        table.clear(statsTable, 0, 0)
-        
+    else     
         // --- Values ---
         string tfDisplay = fixedTF == "240" ? "4H" : fixedTF == "D" ? "Daily" : fixedTF
         string val_bull = finalBullSOS ? "Yes" : "No"
