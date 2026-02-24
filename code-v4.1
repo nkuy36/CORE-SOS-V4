@@ -362,21 +362,44 @@ calc_bull_logic() =>
     float _ctHighPause  = ta.highest(high[1], math.max(1, ctPauseMaxB_pre))
     float _ctHighLeg1   = ta.highest(high, ctLeg1LB_pre)
     int   _ctBSH_raw    = ta.barssince(high == _ctHighLeg1)
-    float _ctSmaPauseV  = ta.sma(volume, ctPauseMaxB_pre)
     int   _ctBSH_safe   = math.min(math.max(1, nz(_ctBSH_raw, 1)), 500)
-    float _ctSmaPBV     = ta.sma(volume, _ctBSH_safe)
+        
+    // Safe Loop for Pause Volume
+    float _ctPauseVolSum = 0.0
+    for i = 0 to math.max(0, ctPauseMaxB_pre - 1)
+        _ctPauseVolSum += nz(volume[i])
+    float _ctSmaPauseV  = _ctPauseVolSum / math.max(1, ctPauseMaxB_pre)
+        
+    // Safe Loop for Pullback Volume
+    float _ctVolSum = 0.0
+    for i = 0 to math.max(0, _ctBSH_safe - 1)
+        _ctVolSum += nz(volume[i])
+    float _ctSmaPBV     = _ctVolSum / math.max(1, _ctBSH_safe)
 
     // H2-specific lookbacks (auto-scaled)
     int h2SwingLB_pre   = math.max(2, math.round(h2SwingHighLookback * tfMultiplier))
     int h2PriorLB_pre   = math.max(5, math.round(h2PriorSwingLookback * tfMultiplier))
     float _h2RecentHigh = ta.highest(high, h2SwingLB_pre)
     int   _h2BSH_raw    = ta.barssince(high == _h2RecentHigh)
-    int   _h2BSH_safe   = math.max(1, nz(_h2BSH_raw, 1))
-    float _h2PbAvgVol   = ta.sma(volume, _h2BSH_safe)
-    float _h2PbVolRef   = ta.sma(volume, _h2BSH_safe)
-    float _h2LowestPB   = ta.lowest(low, _h2BSH_safe)
+    int   _h2BSH_safe   = math.min(math.max(1, nz(_h2BSH_raw, 1)), 500)
+        
+    // Safe Loop for Volume
+    float _h2VolSum = 0.0
+    for i = 0 to math.max(0, _h2BSH_safe - 1)
+        _h2VolSum += nz(volume[i])
+    float _h2PbAvgVol   = _h2VolSum / math.max(1, _h2BSH_safe)
+    float _h2PbVolRef   = _h2PbAvgVol 
+        
+    // Safe Loop for Lowest Pullback
+    float _h2LowestPB = low
+    if _h2BSH_safe > 1
+        for i = 1 to _h2BSH_safe - 1
+            _h2LowestPB := math.min(_h2LowestPB, nz(low[i], low))
+                
+    // Safe Offset for Prior Swing
     int   _h2PriorOff   = math.min(_h2BSH_safe + 1, math.max(0, bar_index - h2PriorLB_pre))
-    float _h2PriorSwing = ta.lowest(low, h2PriorLB_pre)[_h2PriorOff]
+    int   _safeOffset   = math.min(_h2PriorOff, math.max(0, bar_index - h2PriorLB_pre))
+    float _h2PriorSwing = ta.lowest(low, h2PriorLB_pre)[_safeOffset]
 
     // VCP
     float _vcpHighest10 = ta.highest(high, 10)
