@@ -1,5 +1,5 @@
 //@version=6
-indicator("CORE SOS V4.2", shorttitle="CORE SOS V4.2", overlay=true, max_labels_count=500, max_lines_count=500, max_boxes_count=500)
+indicator("CORE SOS V5", shorttitle="CORE SOS V5", overlay=true, max_labels_count=500, max_lines_count=500, max_boxes_count=500)
 
 // ==============================================================================
 // 1. STRATEGY SELECTION & TIMEFRAME
@@ -36,7 +36,7 @@ blockDaysStd = input.int(2, "Standard SOS: Block Days", minval=1, maxval=10, gro
      tooltip="Prevents SD signals from firing too frequently (default 2 days)")
 
 // Trigger
-_b2 = input.bool(false, "=== SOS TRIGGER (Shared: SD + CT) ===", group=grp_bull)
+_div1 = input.bool(false, "=== SOS TRIGGER (Shared: SD + CT) ===", tooltip="Note: This checkbox is just a visual header to separate sections. Toggling it on or off does not affect the script.", group=grp_bull)
 SOS_GREEN_VOLATILITY_THRESHOLD = input.float(0.5, "Trigger: Volatility Thresh (%)", minval=0.1, maxval=10.0, step=0.1, group=grp_bull) / 100
 SOS_GREEN_OPEN_THRESHOLD = input.float(99.5, "Trigger: Open Thresh (%)", minval=95.0, maxval=105.0, step=0.1, group=grp_bull) / 100
 SOS_RED_THRESHOLD = input.float(0.5, "Trigger: Red Thresh (%)", minval=0.1, maxval=10.0, step=0.1, group=grp_bull) / 100
@@ -44,10 +44,9 @@ bullBreakoutPct = input.float(3.0, "Trigger: Min Breakout %", minval=0.0, step=0
 brk_atrLen = input.int(14, "Trigger: ATR Length for Auto-Calc", minval=5, maxval=50, group=grp_bull)
 brk_showAutoCalc = input.bool(true, "Trigger: Show ATR Auto-Calc in Data Window", group=grp_bull, tooltip="Displays the auto-calculated ATR multiple that corresponds to your Breakout % for this stock.")
 
-
 // Liquidity Filter (Moved from Bear to Bull/Global)
-_b6 = input.bool(false, "=== LIQUIDITY FILTER ===", group=grp_bull)
-useVolumeFilter = input.bool(true, "Liquidity: Require Volume Spike", group=grp_bull)
+_div2 = input.bool(false, "=== LIQUIDITY FILTER ===", tooltip="Note: This checkbox is just a visual header to separate sections. Toggling it on or off does not affect the script.", group=grp_bull)
+useVolumeFilter = input.bool(false, "Liquidity: Require Volume Spike", group=grp_bull)
 volAvgLen = input.int(20, "Liquidity: Avg Length", minval=5, group=grp_bull)
 volSpikePct = input.float(120, "Liquidity: Min % of Average", minval=50, step=10, group=grp_bull)
 
@@ -62,13 +61,11 @@ ctMode = input.string("Both", "CT: Detection Mode", options=["Tight Pause", "MA 
 ctConfirmedOnly = input.bool(false, "CT: Confirmed Signals Only", group=grp_bull)
 
 // ── LAYER 1: LEG 1 MOMENTUM ──
-_ctL1 = input.bool(false, "── CT Layer 1: Leg 1 Momentum ──", group=grp_bull)
-ctRequireLeg1 = input.bool(true, "CT: Require Prior Momentum Move", group=grp_bull)
+ctRequireLeg1 = input.bool(true, "── CT Layer 1: Leg 1 Momentum ──", group=grp_bull)
 ctLeg1MinPct = input.float(10.0, "  ├ Min Leg 1 Gain (%)", minval=3.0, maxval=50.0, step=1.0, group=grp_bull)
 ctLeg1Lookback = input.int(30, "  └ Leg 1 Lookback (daily equiv)", minval=10, maxval=60, group=grp_bull)
 
 // ── LAYER 2A: TIGHT PAUSE (2Lynch) ──
-_ctL2A = input.bool(false, "── CT Layer 2A: Tight Pause ──", group=grp_bull)
 ctPauseMinDays = input.int(2, "  ├ Min Pause Days (daily equiv)", minval=1, maxval=10, group=grp_bull)
 ctPauseMaxDays = input.int(5, "  ├ Max Pause Days (daily equiv)", minval=2, maxval=15, group=grp_bull)
 ctPauseMaxRange = input.float(1.5, "  ├ Max Pause Range (ATR multiple)", minval=0.5, maxval=4.0, step=0.1, group=grp_bull)
@@ -76,7 +73,6 @@ ctPauseVolDryUp = input.bool(true, "  └ Require Volume Dry-Up During Pause", g
 ctPauseVolPct = input.float(80.0, "      └ Max Vol % of 20d Avg", minval=30.0, maxval=120.0, step=5.0, group=grp_bull)
 
 // ── LAYER 2B: MA PULLBACK (Qullamaggie) ──
-_ctL2B = input.bool(false, "── CT Layer 2B: MA Pullback ──", group=grp_bull)
 ctPullbackMA1 = input.string("EMA9", "  ├ Primary MA", options=["EMA9", "EMA10", "EMA21"], group=grp_bull)
 ctPullbackMA2 = input.string("EMA21", "  ├ Secondary MA", options=["EMA9", "EMA21", "EMA50"], group=grp_bull)
 ctPullbackLogic = input.string("Either", "  ├ MA Logic", options=["Either", "Primary Only", "Secondary Only"], group=grp_bull)
@@ -86,16 +82,14 @@ ctPullbackVolDry = input.bool(true, "  └ Require Volume Dry-Up During Pullback
 ctPullbackVolPct = input.float(75.0, "      └ Max Vol % of 20d Avg", minval=30.0, maxval=100.0, step=5.0, group=grp_bull)
 
 // ── LAYER 3: TRIGGER BAR ──
-_ctL3 = input.bool(false, "── CT Layer 3: Trigger ──", group=grp_bull)
-ctTriggerMode = input.string("SOS Trigger", "CT: Trigger Mode", options=["SOS Trigger", "Close > Prior High", "Close > Pause High"], group=grp_bull)
+ctTriggerMode = input.string("SOS Trigger", "── CT Layer 3: Trigger Mode ──", options=["SOS Trigger", "Close > Prior High", "Close > Pause High"], group=grp_bull)
 ctMinClosePosition = input.float(0.50, "  ├ Min Close Position (0-1)", minval=0.0, maxval=0.95, step=0.05, group=grp_bull)
 ctMinBodyPct = input.float(1.0, "  ├ Min Body Size (%)", minval=0.0, maxval=5.0, step=0.1, group=grp_bull)
 ctRequireVolExpansion = input.bool(true, "  └ Require Volume Expansion on Trigger", group=grp_bull)
 ctTriggerVolMultiple = input.float(1.3, "      └ Volume Multiple", minval=1.0, maxval=3.0, step=0.1, group=grp_bull)
 
 // ── LAYER 4: TREND CONTEXT ──
-_ctL4 = input.bool(false, "── CT Layer 4: Trend ──", group=grp_bull)
-ctRequireTrend = input.bool(true, "CT: Enable Trend Filter", group=grp_bull)
+ctRequireTrend = input.bool(true, "── CT Layer 4: Trend ──", group=grp_bull)
 ctTrendMA = input.string("EMA21", "  ├ Trend MA", options=["EMA9", "EMA21", "EMA50"], group=grp_bull)
 ctRequireStage2 = input.bool(false, "  └ Require Stage 2", group=grp_bull)
 
@@ -113,14 +107,8 @@ vcpVolDryPct       = input.float(55, "VCP: Max Volume % on Last Leg", minval=20,
 vcpTennisBallPct   = input.float(70, "VCP: Tennis Ball Close %", minval=50, maxval=90, group=grp_bull)
 vcpContractionFactor = input.float(0.82, "VCP: Contraction Factor (lower = stricter)", minval=0.60, maxval=0.95, step=0.01, group=grp_bull)
 
-// === ORH FILTER (Qullamaggie style) ===
-// FIX: Changed default to FALSE
-useORHFilter   = input.bool(false, "Require ORH Breakout", group=grp_bull)
-orhPeriod      = input.string("30", "ORH Period (minutes)", options=["5","15","30","60","Manual"], group=grp_bull)
-orhManualBars  = input.int(6, "Manual ORH Bars", minval=1, group=grp_bull)
-
 // Filters
-_b4 = input.bool(false, "=== GLOBAL FILTERS ===", group=grp_bull)
+_div3 = input.bool(false, "=== GLOBAL FILTERS ===", tooltip="Note: This checkbox is just a visual header to separate sections. Toggling it on or off does not affect the script.", group=grp_bull)
 enableUpFilterBull = input.bool(true, "Enable Consecutive Up Filter", group=grp_bull)
 maxConsecUpBull = input.int(2, "Max Consecutive Up Days Allowed", minval=0, maxval=10, group=grp_bull)
 upThresholdBull = input.float(0.1, "Up Close Threshold (%)", minval=0.0, maxval=10.0, step=0.01, group=grp_bull) / 100
@@ -135,59 +123,42 @@ cdlRequireStage2 = input.bool(true, "CDL: Require Stage 2 Trend", group=grp_bull
 cdlRequireShortTrend = input.bool(true, "CDL: Require EMA9 > EMA21", group=grp_bull)
 
 // ==============================================================================
-// === H2 PULLBACK REVERSAL (ABC) ===
+// === H2 PULLBACK REVERSAL ===
 // ==============================================================================
 h2Enabled = input.bool(true, "═══ H2 PULLBACK REVERSAL ═══", group=grp_bull, tooltip="Master switch: uncheck to completely disable H2 signals.")
-h2ConfirmedOnly = input.bool(false, "H2: Confirmed Signals Only", group=grp_bull, tooltip="ON = signal only appears after bar close.\nOFF = signal appears in real-time.")
 blockRecentH2 = input.bool(true, "H2: Block Recent Signals", group=grp_bull)
-blockDaysH2 = input.int(2, "H2: Block Days", minval=1, maxval=10, group=grp_bull,
-     tooltip="Prevents H2 signals from firing too frequently (default 2 days)")
+blockDaysH2 = input.int(2, "H2: Block Days", minval=1, maxval=10, group=grp_bull, tooltip="Prevents H2 signals from firing too frequently.")
 
-// ── LAYER 1: TREND ──
-_h2L1 = input.bool(false, "── H2 Layer 1: Trend ──", group=grp_bull)
-h2RequireTrend = input.bool(true, "H2: Enable Trend Filter", group=grp_bull)
+// ── LAYER 1: TREND (toggle is the header) ──
+h2RequireTrend = input.bool(true, "── H2 Layer 1: Trend ──", group=grp_bull, tooltip="Master toggle for trend filters. Uncheck to skip all trend checks.")
 h2RequireStage2 = input.bool(false, "  ├ Require Stage 2 (SMA50>150>200)", group=grp_bull)
 h2RequireAboveMA = input.bool(true, "  ├ Require Price > MA", group=grp_bull)
 h2MinMA = input.string("EMA21", "  │   └ MA Selection", options=["EMA21", "EMA50", "SMA200"], group=grp_bull)
-h2Require200Rising = input.bool(false, "  ├ Require SMA200 Rising", group=grp_bull)
-h2MaxUpDays = input.int(2, "  ├ Max Consecutive Up Days", minval=1, maxval=10, group=grp_bull, tooltip="Blocks H2 if stock has had X or more consecutive up days. Avoids chasing extended moves.")
-h2RequireNear52WH = input.bool(false, "  └ Require Near 52-Week High", group=grp_bull)
-h2Near52WHPct = input.float(25.0, "      └ Max Distance from 52W High (%)", minval=5.0, maxval=50.0, step=1.0, group=grp_bull)
+h2MaxUpDays = input.int(2, "  └ Max Consecutive Green Days", minval=1, maxval=10, group=grp_bull, tooltip="Blocks H2 if stock has had X or more consecutive green days. Avoids chasing.")
 
-// ── LAYER 2: PULLBACK QUALITY ──
-_h2L2 = input.bool(false, "── H2 Layer 2: Pullback Quality ──", group=grp_bull)
-h2RequirePullback = input.bool(false, "H2: Enable Pullback Filter", group=grp_bull)
-h2SwingHighLookback = input.int(20, "  ├ Swing High Lookback (daily equiv)", minval=5, maxval=60, group=grp_bull)
-h2MinPullbackPct = input.float(3.0, "  ├ Min Pullback Depth (%)", minval=0.0, maxval=15.0, step=0.5, group=grp_bull)
-h2MaxPullbackPct = input.float(20.0, "  ├ Max Pullback Depth (%)", minval=5.0, maxval=50.0, step=1.0, group=grp_bull)
-h2MinPullbackBars = input.int(3, "  ├ Min Pullback Duration (daily equiv)", minval=1, maxval=15, group=grp_bull)
-h2MaxPullbackBars = input.int(20, "  ├ Max Pullback Duration (daily equiv)", minval=5, maxval=60, group=grp_bull)
-h2RequireVolDryUp = input.bool(true, "  └ Require Volume Dry-Up", group=grp_bull)
-h2VolDryUpPct = input.float(70.0, "      └ Max Vol % of 20d Avg", minval=30.0, maxval=100.0, step=5.0, group=grp_bull)
-// ── LAYER 2B: EMA PROXIMITY (Momentum Health) ──
-_h2L2B = input.bool(false, "── H2 Layer 2B: EMA Proximity ──", group=grp_bull)
-h2RequireEMAProx = input.bool(true, "H2: Require EMA Proximity Check", group=grp_bull, tooltip="Ensures the short EMAs haven't collapsed together (momentum exhaustion).")
+// ── LAYER 2: EMA PROXIMITY (toggle is the header) ──
+h2RequireEMAProx = input.bool(true, "── H2 Layer 2: EMA Proximity ──", group=grp_bull, tooltip="Master toggle. Checks that fast and slow EMAs are properly spread (momentum health).")
 h2ProxMA1 = input.string("EMA9", "  ├ Fast MA", options=["EMA9", "EMA10", "EMA21"], group=grp_bull)
 h2ProxMA2 = input.string("EMA21", "  ├ Slow MA", options=["EMA21", "EMA50"], group=grp_bull)
-h2ProxMinATR = input.float(0.3, "  ├ Min Distance (ATR multiple)", minval=0.0, maxval=3.0, step=0.1, group=grp_bull, tooltip="Fast MA must be at least this many ATRs ABOVE Slow MA. Prevents signals when EMAs are flat/crossed.")
-h2ProxRequireAbove = input.bool(true, "  └ Require Fast MA > Slow MA", group=grp_bull, tooltip="When ON, fast EMA must be above slow EMA (healthy uptrend). When OFF, only distance matters.")
+h2ProxMinATR = input.float(0.1, "  ├ Min Distance (ATR multiple)", minval=0.0, maxval=3.0, step=0.1, group=grp_bull, tooltip="Fast MA must be at least this many ATRs above Slow MA.")
+h2ProxRequireAbove = input.bool(true, "  └ Require Fast MA > Slow MA", group=grp_bull)
 
-// ── LAYER 3: SUPPORT / HIGHER LOW ──
-_h2L3 = input.bool(false, "── H2 Layer 3: Support ──", group=grp_bull)
-h2RequireSupport = input.bool(true, "H2: Enable Support Filter", group=grp_bull)
-h2RequireMASupport = input.bool(true, "  ├ Require MA Support", group=grp_bull)
-h2SupportMA = input.string("EMA21", "  │   └ Support MA", options=["EMA9", "EMA21", "EMA50"], group=grp_bull)
-h2SupportATRDist = input.float(2.0, "  │   └ Max ATR Distance", minval=0.5, maxval=5.0, step=0.1, group=grp_bull)
-h2RequireHigherLow = input.bool(true, "  └ Require Higher Low", group=grp_bull)
-h2PriorSwingLookback = input.int(40, "      └ Prior Swing Lookback (daily equiv)", minval=10, maxval=100, group=grp_bull)
+// ── LAYER 3: PULLBACK CHARACTER (toggle is the header) ──
+h2RequirePBChar = input.bool(true, "── H2 Layer 3: Pullback Character ──", group=grp_bull, tooltip="Master toggle. Ensures a real pullback happened before the bounce.")
+h2PBLookback = input.int(5, "  ├ Lookback Window (bars)", minval=2, maxval=15, group=grp_bull, tooltip="Count red bars within this window before the current bar.")
+h2PBMinRedBars = input.int(2, "  ├ Min Red Bars in Window", minval=1, maxval=10, group=grp_bull, tooltip="Minimum number of red (close < open) bars required.")
+h2RequirePriorQuiet = input.bool(true, "  ├ Prior Bar Red or Narrow", group=grp_bull, tooltip="Yesterday must be red OR a narrow green bar (indecisive).")
+h2NarrowThreshold = input.float(0.3, "  └ Narrow Bar Threshold (ATR %)", minval=0.05, maxval=1.0, step=0.05, group=grp_bull, tooltip="If prior bar is green, its body must be less than this fraction of ATR to qualify as narrow.")
 
-// ── LAYER 4: TRIGGER BAR ──
-_h2L4 = input.bool(false, "── H2 Layer 4: Trigger ──", group=grp_bull)
-h2TriggerMode = input.string("Any Green Bar", "H2: Trigger Mode", options=["Close > Prior High", "Close > EMA9", "Any Green Bar", "SOS Trigger"], group=grp_bull)
-h2MinClosePosition = input.float(0.50, "  ├ Min Close Position (0-1)", minval=0.0, maxval=0.95, step=0.05, group=grp_bull)
-h2MinBodyPct = input.float(0.50, "  ├ Min Body Size (%)", minval=0.0, maxval=5.0, step=0.1, group=grp_bull)
-h2RequireVolExpansion = input.bool(true, "  └ Require Volume Expansion", group=grp_bull)
-h2TriggerVolMultiple = input.float(1.0, "      └ Volume Multiple", minval=1.0, maxval=3.0, step=0.1, group=grp_bull)
+// ── LAYER 4: SUPPORT (toggle is the header) ──
+h2RequireSupport = input.bool(true, "── H2 Layer 4: Support ──", group=grp_bull, tooltip="Master toggle. Requires price to be near a key moving average.")
+h2SupportMA = input.string("EMA21", "  ├ Support MA", options=["EMA9", "EMA21", "EMA50"], group=grp_bull)
+h2SupportATRDist = input.float(2.0, "  └ Max ATR Distance", minval=0.5, maxval=5.0, step=0.1, group=grp_bull, tooltip="Low of the bar must be within this many ATRs of the Support MA.")
+
+// ── LAYER 5: TRIGGER (no toggle — always active when H2 is enabled) ──
+h2TriggerMode = input.string("Any Green Bar", "── H2 Layer 5: Trigger Mode ──", options=["Close > Prior High", "Close > EMA9", "Any Green Bar", "SOS Trigger"], group=grp_bull)
+h2MinClosePosition = input.float(0.45, "  ├ Min Close Position (0-1)", minval=0.0, maxval=0.95, step=0.05, group=grp_bull, tooltip="Where close must sit within the bar range. 0.5 = upper half. 0 = no filter.")
+h2MinBodyPct = input.float(0.50, "  └ Min Body Size (%)", minval=0.0, maxval=5.0, step=0.1, group=grp_bull)
 
 // ==============================================================================
 // 4. MARKET CONTEXT (FILTERS)
@@ -211,12 +182,10 @@ chopThreshTrans = input.float(50.0, "Chop: Transition Threshold", minval=40.0, m
 chopThreshTrend = input.float(38.2, "Chop: Super Trend Threshold", minval=20.0, maxval=50.0, step=0.1, group=grp_mkt)
 breadthThresh   = input.float(50.0, "Hybrid: Min Sector Breadth %", minval=20.0, maxval=80.0, group=grp_mkt)
 
-_m2 = input.bool(false, "=== CONTEXT MAs ===", group=grp_mkt)
 lenEMA8 = input.int(8, "Context EMA 8", minval=1, group=grp_mkt)
 lenEMA21 = input.int(21, "Context EMA 21", minval=1, group=grp_mkt)
 lenEMA50 = input.int(50, "Context EMA 50", minval=1, group=grp_mkt)
 
-_m3 = input.bool(false, "=== HTF FILTER ===", group=grp_mkt)
 htfTimeframe = input.timeframe("1W", "Higher Timeframe", group=grp_mkt)
 htfEMALen = input.int(20, "HTF Trend EMA Length", minval=5, group=grp_mkt)
 
@@ -226,12 +195,10 @@ htfEMALen = input.int(20, "HTF Trend EMA Length", minval=5, group=grp_mkt)
 grp_freq = "5. FREQUENCY & EXEMPTIONS"
 
 // Bull Blocking
-_f1 = input.bool(false, "=== BULL FREQUENCY ===", group=grp_freq)
 blockRecentBull = input.bool(true, "Block Recent Bull Signals", group=grp_freq, inline="bull_freq")
 recentBlockDays = input.int(2, "Days", minval=1, maxval=20, group=grp_freq, inline="bull_freq", tooltip="Prevents consecutive Bull signals within X days.")
 
 // Exemptions
-_exempt_div = input.bool(false, "=== EXEMPTIONS (NEVER BLOCK) ===", group=grp_freq) 
 exemptVCP = input.bool(true, "Always Show VCP (High Quality)", group=grp_freq)
 exemptCont = input.bool(true, "Always Show Continuation", group=grp_freq)
 exemptH2 = input.bool(true, "Always Show H2 (Pullback)", group=grp_freq)
@@ -310,7 +277,6 @@ type BullResult
     bool vcpRdy
     float avgB
     string regText
-    bool orhBreak
     float extATR
     float extPct
     float atr14
@@ -366,7 +332,6 @@ calc_bull_logic() =>
     // ── PRE-CALCULATED ta.* CALLS (must run every bar) ──
     // These are referenced inside conditional if-blocks below.
     // Moving them here ensures their internal buffers stay consistent.
-
     // Shared
     float _sma20vol     = ta.sma(volume, 20)
     float _sma50vol     = ta.sma(volume, 50)
@@ -395,37 +360,12 @@ calc_bull_logic() =>
     for i = 0 to math.max(0, ctPauseMaxB_pre - 1)
         _ctPauseVolSum += nz(volume[i])
     float _ctSmaPauseV  = _ctPauseVolSum / math.max(1, ctPauseMaxB_pre)
-        
+       
     // Safe Loop for Pullback Volume
     float _ctVolSum = 0.0
     for i = 0 to math.max(0, _ctBSH_safe - 1)
         _ctVolSum += nz(volume[i])
     float _ctSmaPBV     = _ctVolSum / math.max(1, _ctBSH_safe)
-
-    // H2-specific lookbacks (auto-scaled)
-    int h2SwingLB_pre   = math.max(2, math.round(h2SwingHighLookback * tfMultiplier))
-    int h2PriorLB_pre   = math.max(5, math.round(h2PriorSwingLookback * tfMultiplier))
-    float _h2RecentHigh = ta.highest(high, h2SwingLB_pre)
-    int   _h2BSH_raw    = ta.barssince(high == _h2RecentHigh)
-    int   _h2BSH_safe   = math.min(math.max(1, nz(_h2BSH_raw, 1)), 500)
-        
-    // Safe Loop for Volume
-    float _h2VolSum = 0.0
-    for i = 0 to math.max(0, _h2BSH_safe - 1)
-        _h2VolSum += nz(volume[i])
-    float _h2PbAvgVol   = _h2VolSum / math.max(1, _h2BSH_safe)
-    float _h2PbVolRef   = _h2PbAvgVol 
-        
-    // Safe Loop for Lowest Pullback
-    float _h2LowestPB = low
-    if _h2BSH_safe > 1
-        for i = 1 to _h2BSH_safe - 1
-            _h2LowestPB := math.min(_h2LowestPB, nz(low[i], low))
-                
-    // Safe Offset for Prior Swing
-    int   _h2PriorOff   = math.min(_h2BSH_safe + 1, math.max(0, bar_index - h2PriorLB_pre))
-    int   _safeOffset   = math.min(_h2PriorOff, math.max(0, bar_index - h2PriorLB_pre))
-    float _h2PriorSwing = ta.lowest(low, h2PriorLB_pre)[_safeOffset]
 
     // VCP
     float _vcpHighest10 = ta.highest(high, 10)
@@ -441,11 +381,6 @@ calc_bull_logic() =>
     // NEW: Unconditional Stage 2 pre-calculation for pristine ta.* buffers
     [_s2full, _s2short] = f_stage2(true, false)
 
-    // ORH
-    float _orhOrBars = orhPeriod == "Manual" ? orhManualBars : str.tonumber(orhPeriod) / (timeframe.in_seconds(fixedTF) / 60.0)
-    int   _orhBarsInt = math.round(math.max(1, _orhOrBars))
-    float _orhHigh = ta.highest(high, _orhBarsInt)
-        
     // Liquidity Check
     bool liquidityOK = not useVolumeFilter or (volume >= volAvg_loc * (volSpikePct / 100))
 
@@ -677,31 +612,25 @@ calc_bull_logic() =>
         vBull := vcpTrendTemp and progressive and volDryUp and tennisBall and breakout
 
     // ==============================================================================
-    // 5. H2 — PULLBACK REVERSAL (ABC)
+    // H2 — PULLBACK REVERSAL
     // ==============================================================================
     bool h2Bull = false
     if modeABC and h2Enabled
-        
-        int h2MinBars = math.max(1, math.round(h2MinPullbackBars * tfMultiplier))
-        int h2MaxBars = math.max(h2MinBars + 1, math.round(h2MaxPullbackBars * tfMultiplier))
 
         // --- LAYER 1: TREND ---
         bool trendOK = true
         if h2RequireTrend
             bool s2ok = h2RequireStage2 ? _s2full : true
-            bool h2S2short = h2RequireStage2 ? _s2short : false
             float h2MAVal = switch h2MinMA
                 "EMA21"  => _ema21
                 "EMA50"  => _ema50
                 "SMA200" => _sma200
             bool aboveMA = not h2RequireAboveMA or (close > h2MAVal)
-            float sma200_h2 = _sma200
-            bool rising200 = not h2Require200Rising or (sma200_h2 > sma200_h2[20])
-            bool near52 = not h2RequireNear52WH or (close >= high52_loc * (1 - h2Near52WHPct / 100))
-            // Consecutive up days check
+
+            // Consecutive green days check
             int h2ConsecUp = 0
             for i = 1 to 20
-                if na(close[i]) or na(close[i-1])
+                if na(close[i]) or na(open[i])
                     break
                 if close[i] > open[i]
                     h2ConsecUp += 1
@@ -709,24 +638,9 @@ calc_bull_logic() =>
                     break
             bool h2UpDaysOK = h2ConsecUp < h2MaxUpDays
 
-            trendOK := s2ok and aboveMA and rising200 and near52 and h2UpDaysOK
+            trendOK := s2ok and aboveMA and h2UpDaysOK
 
-        // --- LAYER 2: PULLBACK QUALITY ---
-        float recentHigh = _h2RecentHigh
-        int   barsSinceHigh = _h2BSH_raw
-        int   bsh_safe = _h2BSH_safe
-
-        bool pullbackOK = true
-        if h2RequirePullback
-            float pullbackDepth = (recentHigh - low) / recentHigh * 100
-            bool depthOK = pullbackDepth >= h2MinPullbackPct and pullbackDepth <= h2MaxPullbackPct
-            bool durationOK = barsSinceHigh >= h2MinBars and barsSinceHigh <= h2MaxBars
-            float pbAvgVol = _h2PbAvgVol
-            float refAvgVol = _sma20vol
-            bool volDryOK = not h2RequireVolDryUp or (pbAvgVol <= refAvgVol * (h2VolDryUpPct / 100))
-            pullbackOK := depthOK and durationOK and volDryOK
-        
-                // --- LAYER 2B: EMA PROXIMITY (Momentum Health) ---
+        // --- LAYER 2: EMA PROXIMITY ---
         bool emaProxOK = true
         if h2RequireEMAProx
             float h2FastMA = switch h2ProxMA1
@@ -739,45 +653,59 @@ calc_bull_logic() =>
             float emaDist = h2FastMA - h2SlowMA
             bool emaSpread = emaDist >= atr14_loc * h2ProxMinATR
             bool emaOrder = not h2ProxRequireAbove or (h2FastMA > h2SlowMA)
-            emaProxOK := emaSpread and emaOrder    
+            emaProxOK := emaSpread and emaOrder
 
-        // --- LAYER 3: SUPPORT + HIGHER LOW ---
+        // --- LAYER 3: PULLBACK CHARACTER ---
+        bool pbCharOK = true
+        if h2RequirePBChar
+            // Count red bars in lookback window
+            int redCount = 0
+            for i = 1 to h2PBLookback
+                if na(close[i]) or na(open[i])
+                    break
+                if close[i] < open[i]
+                    redCount += 1
+            bool enoughReds = redCount >= h2PBMinRedBars
+
+            // Prior bar check: must be red OR narrow green
+            bool priorQuietOK = true
+            if h2RequirePriorQuiet
+                bool priorRed = close[1] < open[1]
+                float priorBody = math.abs(close[1] - open[1])
+                bool priorNarrow = priorBody <= nz(atr14_loc, 9999) * h2NarrowThreshold
+                priorQuietOK := priorRed or priorNarrow
+
+            pbCharOK := enoughReds and priorQuietOK
+
+        // --- LAYER 4: SUPPORT ---
         bool supportOK = true
         if h2RequireSupport
             float supportMAVal = switch h2SupportMA
                 "EMA9"  => _ema9
                 "EMA21" => _ema21
                 "EMA50" => _ema50
-            float atr_h2 = atr14_loc
-            bool nearSupport = not h2RequireMASupport or (low <= supportMAVal + atr_h2 * h2SupportATRDist and low >= supportMAVal - atr_h2 * h2SupportATRDist)
-            float currentPBLow = _h2LowestPB
-            float priorSwingLow = _h2PriorSwing
-            bool higherLowOK = not h2RequireHigherLow or (currentPBLow > priorSwingLow)
-            supportOK := nearSupport and higherLowOK
+            bool nearSupport = low <= supportMAVal + atr14_loc * h2SupportATRDist and low >= supportMAVal - atr14_loc * h2SupportATRDist
+            supportOK := nearSupport
 
-        // --- LAYER 4: TRIGGER BAR ---
-        bool isGreen  = close > open
+        // --- LAYER 5: TRIGGER ---
+        bool isGreen = close > open
         bool closePos = h2MinClosePosition <= 0 or ((close - low) / math.max(high - low, 0.0001) >= h2MinClosePosition)
-        bool bodyOK   = h2MinBodyPct <= 0 or ((close - open) / open >= h2MinBodyPct / 100)
-        
+        bool bodyOK = h2MinBodyPct <= 0 or ((close - open) / open >= h2MinBodyPct / 100)
+
         bool triggerBar = switch h2TriggerMode
             "Close > Prior High" => close > high[1]
             "Close > EMA9"       => close > _ema9
             "Any Green Bar"      => true
             "SOS Trigger"        => sosTrigger()
-        
-        float pbVolRef = _h2PbVolRef
-        bool volExpand = not h2RequireVolExpansion or (volume >= pbVolRef * h2TriggerVolMultiple)
-        bool triggerOK = isGreen and closePos and bodyOK and triggerBar and volExpand
+
+        bool triggerOK = isGreen and closePos and bodyOK and triggerBar
 
         // --- FREQUENCY BLOCK ---
         var int lastH2 = na
         bool recentBlkH2 = blockRecentH2 and not na(lastH2) and (bar_index - lastH2 <= blockDaysH2)
 
         // --- COMBINE ---
-        h2Bull := trendOK and pullbackOK and emaProxOK and supportOK and triggerOK and not recentBlkH2
-        if h2ConfirmedOnly
-            h2Bull := h2Bull and barstate.isconfirmed
+        h2Bull := trendOK and emaProxOK and pbCharOK and supportOK and triggerOK and not recentBlkH2
 
         if h2Bull
             lastH2 := bar_index
@@ -804,14 +732,6 @@ calc_bull_logic() =>
     // Combine
     bool final = standardSOS or ctBull or vBull or h2Bull or cdlBull
 
-    // ORH Breakout Filter (fixed type + rounding)
-    float orBars = orhPeriod == "Manual" ? orhManualBars : str.tonumber(orhPeriod) / (timeframe.in_seconds(fixedTF) / 60.0)
-    int   orBarsInt = math.round(math.max(1, orBars))   // prevent 0 bars
-    float orHigh = ta.highest(high, orBarsInt)
-    bool orhBreak = close > _orhHigh[1] and volume > _sma20vol * 1.35
-
-    final := final and (not useORHFilter or orhBreak)
-    
     // Frequency Block Logic
     var int lastB = na
     bool recentBlk = blockRecentBull and not na(lastB) and (bar_index - lastB <= recentBlockDays)
@@ -901,7 +821,7 @@ calc_bull_logic() =>
     float ext_atr = (close - maVal) / atr14_loc
 
     // Return Result
-    BullResult.new(final, standardSOS, ctBull, vBull, h2Bull, cdlBull, tCtx, vcpReady_loc, avgBars, rText, orhBreak, ext_atr, ext_pct, atr14_loc, _brk_atr, _brk_autoMult, _brk_dollarThreshold)
+    BullResult.new(final, standardSOS, ctBull, vBull, h2Bull, cdlBull, tCtx, vcpReady_loc, avgBars, rText, ext_atr, ext_pct, atr14_loc, _brk_atr, _brk_autoMult, _brk_dollarThreshold)
 
 // --- EXECUTE ON FIXED TIMEFRAME ---
 // We call the function inside request.security
@@ -918,7 +838,6 @@ trendContext = res.trendCtx
 vcpReady = res.vcpRdy
 avgBars = res.avgB
 regimeText = res.regText
-orhBreak = res.orhBreak
 extATR = res.extATR
 extPct = res.extPct
 atr14_main = res.atr14
@@ -1120,12 +1039,6 @@ if finalBullSOS and isValidTF
     string sigs = getSignalString()
     alert("**BULL SOS [" + sigs + "]** on " + syminfo.tickerid + " [" + fixedTF + "]", alert.freq_once_per_bar)
 
-// ORH Alert (REAL-TIME VERSION)
-// This is usually preferred for ORH, as you want to catch the breakout momentum instantly.
-if finalBullSOS and orhBreak and isValidTF 
-    string sigs = getSignalString()
-    alert("**ORH BREAKOUT [" + sigs + "]** " + syminfo.tickerid + " [" + fixedTF + "]", alert.freq_once_per_bar)
-
 // ══════════════════════════════════════════════════════════════════════════════
 // DASHBOARD (your original + signal count)
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1233,7 +1146,7 @@ f_populateStatsDashboard() =>
             // Determine BG Color
             color cellBg = dashValueColor
             color txtCol = color.white 
-            
+       
             // 0. TF
             if i == 0 
                 cellBg := color.gray
